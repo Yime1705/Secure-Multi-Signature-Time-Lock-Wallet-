@@ -3,8 +3,13 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+contract SupplyChain is AccessControl {
+    
+    // ADD THESE LINES: These define the identifiers the compiler is missing
+    bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
+    bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
+    bytes32 public constant RETAILER_ROLE = keccak256("RETAILER_ROLE");
 
-contract SupplyChain {
 
     enum State { 
         Produced, 
@@ -24,13 +29,9 @@ contract SupplyChain {
         address retailer;
     }
 
-
-    bytes32 public constant MANUFACTURER_ROLE = keccak256("MANUFACTURER_ROLE");
-    bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR_ROLE");
-    bytes32 public constant RETAILER_ROLE = keccak256("RETAILER_ROLE");
-
     mapping(uint256 => Product) public products;
     uint256 public productCount;
+
 
     event ProductCreated(uint256 indexed productId, string name, address manufacturer);
     event StateChanged(uint256 indexed productId, State state, address actor);
@@ -40,12 +41,11 @@ contract SupplyChain {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-  
-    function produceProduct(string memory _name) public onlyRole(MANUFACTURER_ROLE) {
+    function createProduct(string memory name) public onlyRole(MANUFACTURER_ROLE) {
         productCount++;
         products[productCount] = Product({
             id: productCount,
-            name: _name,
+            name: name,
             currentOwner: msg.sender,
             currentState: State.Produced,
             manufacturer: msg.sender,
@@ -53,58 +53,54 @@ contract SupplyChain {
             retailer: address(0)
         });
 
-        emit ProductCreated(productCount, _name, msg.sender);
-        emit StateChanged(productCount, State.Produced, msg.sender);
+        emit ProductCreated(productCount, name, msg.sender);
     }
 
+    function ShipByManufacturer(uint256 productId, address distributor) public onlyRole(MANUFACTURER_ROLE) {
+        Product storage product = products[productId];
+        require(product.currentState == State.Produced, "Ready to Ship state");
+        require(product.currentOwner == msg.sender, "Only the manufactutrer can ship the product ");
 
-    function shipToDistributor(uint256 _productId) public onlyRole(MANUFACTURER_ROLE) {
-        Product storage product = products[_productId];
-        require(product.currentState == State.Produced, "Product must be in Produced state");
-        
         product.currentState = State.ShippedByManufacturer;
-        emit StateChanged(_productId, State.ShippedByManufacturer, msg.sender);
+        product.distributor = distributor;
+        emit StateChanged(productId, State.ShippedByManufacturer, msg.sender);
     }
 
-
-    function receiveByDistributor(uint256 _productId) public onlyRole(DISTRIBUTOR_ROLE) {
-        Product storage product = products[_productId];
-        require(product.currentState == State.ShippedByManufacturer, "Product must be shipped by manufacturer");
-        
-        address oldOwner = product.currentOwner;
-        product.currentOwner = msg.sender;
-        product.distributor = msg.sender;
+    function ReceiveByDistributer(uint256 productId) public onlyRole(DISTRIBUTOR_ROLE)
+    {
+        Product storage product = products[productId];
+        require(product.currentState == State.ShippedByManufacturer, "Ready to receive by distributor state");
+        require(product.distributor == msg.sender, "Only the assigned distributor can receive the product");
         product.currentState = State.ReceivedByDistributor;
-
-        emit OwnershipTransferred(_productId, oldOwner, msg.sender);
-        emit StateChanged(_productId, State.ReceivedByDistributor, msg.sender);
+        emit StateChanged(productId, State.ReceivedByDistributor, msg.sender);
     }
 
-
-    function shipToRetailer(uint256 _productId) public onlyRole(DISTRIBUTOR_ROLE) {
-        Product storage product = products[_productId];
-        require(product.currentState == State.ReceivedByDistributor, "Product must be at Distributor");
-        
+    function ShipByDistributor(uint256 productId, address retailer) public onlyRole(DISTRIBUTOR_ROLE)
+    {
+        Product storage product = products[productId];
+        require(product.currentState == State.ReceivedByDistributor, "Ready to ship by distributor state");
+        require(product.distributor == msg.sender, "Only the assigned distributor can ship the product");
         product.currentState = State.ShippedByDistributor;
-        emit StateChanged(_productId, State.ShippedByDistributor, msg.sender);
+        product.retailer = retailer;
+        emit StateChanged(productId, State.ShippedByDistributor, msg.sender);
     }
 
-
-    function receiveByRetailer(uint256 _productId) public onlyRole(RETAILER_ROLE) {
-        Product storage product = products[_productId];
-        require(product.currentState == State.ShippedByDistributor, "Product must be shipped by distributor");
-        
-        address oldOwner = product.currentOwner;
-        product.currentOwner = msg.sender;
-        product.retailer = msg.sender;
+    function ReceiveByRetailer(uint256 productId) public onlyRole(RETAILER_ROLE)
+    {
+        Product storage product = products[productId];
+        require(product.currentState == State.ShippedByDistributor, "Ready to receive by retailer state");
+        require(product.retailer == msg.sender, "Only the assigned retailer can receive the product");
         product.currentState = State.ReceivedByRetailer;
-
-        emit OwnershipTransferred(_productId, oldOwner, msg.sender);
-        emit StateChanged(_productId, State.ReceivedByRetailer, msg.sender);
+        emit StateChanged(productId, State.ReceivedByRetailer, msg.sender);
     }
 
-
-    function getProduct(uint256 _productId) public view returns (Product memory) {
-        return products[_productId];
+    function transferRetailOwnership(uint256 productId, address previousOwner, address newOwner) public onlyRole(RETAILER_ROLE)
+    {
+        Product storage product = products[productId];
+        require(product.currentState == State.ReceivedByRetailer, "Only products in ReceivedByRetailer state can be transferred");
+        require(product.retailer == previousOwner, "Only the current owner can transfer ownership");
+        product.retailer = newOwner;
+        emit StateChanged(productId, State.ReceivedByRetailer, msg.sender);
+        emit OwnershipTransferred(productId, previousOwner, newOwner);
     }
 }
