@@ -1,0 +1,30 @@
+{
+  "name": "secure-multi-signature-time-lock-wallet-",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yime1705/Secure-Multi-Signature-Time-Lock-Wallet-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Yime1705/Secure-Multi-Signature-Time-Lock-Wallet-/issues"
+  },
+  "homepage": "https://github.com/Yime1705/Secure-Multi-Signature-Time-Lock-Wallet-#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.2",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.4",
+    "@types/node": "^22.19.17",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.4.0",
+    "typescript": "~5.8.0",
+    "viem": "^2.48.1"
+  }
+}
