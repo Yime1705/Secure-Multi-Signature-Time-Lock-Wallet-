@@ -30,5 +30,13 @@ export default buildModule("SupplyChainModule", (m) => {
     id: "grantRetailerRole",
   });
 
+  console.log("========================================");
+  console.log("ACCOUNT ADDRESSES FOR METAMASK IMPORT:");
+  console.log("========================================");
+  console.log(`Manufacturer (Account 0): ${MANUFACTURER_ROLE}`);
+  console.log(`Distributor  (Account 1): ${DISTRIBUTOR_ROLE}`);
+  console.log(`Retailer     (Account 2): ${RETAILER_ROLE}`);
+  console.log("========================================");
+
   return { supplyChain };
 });
